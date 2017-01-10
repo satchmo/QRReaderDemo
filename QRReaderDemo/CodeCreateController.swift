@@ -17,15 +17,48 @@ class CodeCreateController: UIViewController {
     @IBOutlet weak var codeImageView: UIImageView!
     
     @IBOutlet weak var inputTextView: UITextView!
+    
+    @IBAction func createAction(_ sender: UIButton) {
+        createCode()
+    }
+    
+    var activityView:UIActivityIndicatorView?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.bringSubview(toFront:backButton)
-        createCode()
+        
         // Do any additional setup after loading the view.
     }
     
     private func createCode() {
-        
+        inputTextView.resignFirstResponder()
+        //设备启动状态提示
+        if (activityView == nil)
+        {
+            self.activityView = UIActivityIndicatorView(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
+            
+            activityView?.center = view.center
+            activityView?.frame.origin.y = self.codeImageView.frame.origin.y - 35
+            activityView?.activityIndicatorViewStyle = UIActivityIndicatorViewStyle.whiteLarge
+            activityView?.color = UIColor.lightGray
+            
+            self.view.addSubview(activityView!)
+//            view.addSubview(qrCoderFrameView!)
+            
+            
+//            let labelReadyRect = CGRect(x: activityView!.frame.origin.x + activityView!.frame.size.width + 10, y: activityView!.frame.origin.y, width: 100, height: 30);
+//            //print("%@",NSStringFromCGRect(labelReadyRect))
+//            self.labelReadying = UILabel(frame: labelReadyRect)
+//            labelReadying?.text = readyStr
+//            labelReadying?.backgroundColor = UIColor.clear
+//            labelReadying?.textColor = UIColor.white
+//            labelReadying?.font = UIFont.systemFont(ofSize: 18.0)
+//            addSubview(labelReadying!)
+        }
+//         view.bringSubview(toFront:activityView!)
+         activityView?.startAnimating()
+
         //创建一个二维码滤镜
         let codeFilter = CIFilter(name:"CIQRCodeGenerator")
         
@@ -50,8 +83,18 @@ class CodeCreateController: UIViewController {
         let image = UIImage(ciImage:resultImage)
          print(image.size)
         
+        if activityView != nil
+        {
+            activityView?.stopAnimating()
+            activityView?.removeFromSuperview()
+            
+            activityView = nil
+            
+        }
         // 显示结果
         codeImageView.image = image
+        
+        
     }
     
     override func didReceiveMemoryWarning() {

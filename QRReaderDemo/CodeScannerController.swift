@@ -11,12 +11,6 @@ import AVFoundation
 
 class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDelegate {
     
-    @IBOutlet weak var backButton: UIButton!
-    @IBAction func backAction(_ sender: UIButton) {
-         dismiss(animated: true, completion: nil)
-    }
-    @IBOutlet weak var messageLabel:UILabel!
-    
     var captureSession:AVCaptureSession?
     var videoPreviewLayer:AVCaptureVideoPreviewLayer?
     var qrCoderFrameView:UIView?
@@ -25,11 +19,18 @@ class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDele
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        let backButton:UIButton = UIButton(frame:CGRect(x:24, y:20, width:45, height:45))
+        backButton.setTitle("返回", for:.normal)
+        backButton.setTitleColor(UIColor.black, for: .normal) //普通状态下文字的颜色
+        view.addSubview(backButton)
+        backButton.addTarget(self, action:#selector(backAction(_:)), for: .touchUpInside)
+        view.bringSubview(toFront:backButton)
+        
+
+        
         let captureDevice = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
         
-        //        var error:NSError?
         do {
-            //        let input: AnyObject!  = AVCaptureDeviceInput.init(device: captureDevice)
             
             let input = try AVCaptureDeviceInput(device: captureDevice)
             captureSession = AVCaptureSession()
@@ -52,10 +53,6 @@ class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDele
             // Start video capture.
             captureSession?.startRunning()
             
-            // Move the message label to the top view
-            view.bringSubview(toFront:messageLabel)
-            view.bringSubview(toFront:backButton)
-            
             // Initialize QR Code Frame to highlight the QR code
             qrCoderFrameView = UIView()
             qrCoderFrameView?.layer.borderColor = UIColor.green.cgColor
@@ -63,6 +60,7 @@ class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDele
             view.addSubview(qrCoderFrameView!)
             view.bringSubview(toFront: qrCoderFrameView!)
             
+                      
         } catch let error as NSError {
             print(error)
             return
@@ -75,13 +73,15 @@ class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDele
         // Dispose of any resources that can be recreated.
     }
     
+    func backAction(_ sender: UIButton) {
+        dismiss(animated: true, completion: nil)
+    }
+    
     
     func captureOutput(_ captureOutput: AVCaptureOutput!, didOutputMetadataObjects metadataObjects: [Any]!, from connection: AVCaptureConnection!) {
-        removeQRCodeFrame()
         // Check if the metadataObjects array is not nil and it contains at least one object.
         if metadataObjects == nil || metadataObjects.count == 0 {
             qrCoderFrameView?.frame = CGRect.zero
-            messageLabel.text = "NO QR code is detected"
             return
         }
         // Get the metadata object.
@@ -94,8 +94,10 @@ class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDele
             qrCoderFrameView?.frame = barCodeObject.bounds;
             
             if metadataObj.stringValue != nil {
-                messageLabel.text = metadataObj.stringValue
-                drawCodeFrame(codeObject: barCodeObject)
+                showMessage(title: "提示", meaasge: metadataObj.stringValue)
+                if (captureSession?.isRunning)! {
+                    captureSession?.stopRunning()
+                }
                 print("stringValue=\(metadataObj.stringValue)")
             }
         }
@@ -103,58 +105,23 @@ class CodeScannerController: UIViewController,AVCaptureMetadataOutputObjectsDele
         
     }
     
-    func drawCodeFrame(codeObject: AVMetadataMachineReadableCodeObject) {
-        //创建边框图层
-        let frameShapeLayer = CAShapeLayer()
-        frameShapeLayer.fillColor = UIColor.clear.cgColor
-        frameShapeLayer.strokeColor = UIColor.red.cgColor
-        frameShapeLayer.lineWidth = 6
-        
-        //为图层设置形状的路径用以展示
-        let corners = codeObject.corners
-        let path = UIBezierPath()
-        var index = 0
-        for corner in corners! {
-            let point = CGPoint.zero
-            CGPoint.init(dictionaryRepresentation: corner as! CFDictionary)
-//            CGPointMakeWithDictionaryRepresentation((corner as! CFDictionary), &point)
-            
-            // 如果第一个点, 移动路径过去, 当做起点
-            if index == 0 {
-                path.move(to: point)
-            }else {
-                path.addLine(to: point)
+    func showMessage(title:String?, meaasge:String?) {
+        let alertController = UIAlertController(title: title, message:meaasge, preferredStyle: UIAlertControllerStyle.alert)
+        let alertAction = UIAlertAction(title: title, style: UIAlertActionStyle.default) {
+            (alertAction) in
+            print("点击了确定")
+            if !(self.captureSession?.isRunning)! {
+                self.qrCoderFrameView?.frame = CGRect.zero
+                self.captureSession?.startRunning()
             }
-            // 如果不是第一个点, 添加一个线到这个点
-            
-            index += 1
-            
-        }
-        
-        path.close()
-        // 根据四个角对应的坐标, 转换成为一个path
-        
-        // 给layer 的path 进行赋值
-        frameShapeLayer.path = path.cgPath
-        
-        // 添加形状图层到需要展示的图层上面
-        videoPreviewLayer?.addSublayer(frameShapeLayer)
-    }
-    
-    func removeQRCodeFrame(){
-        
-        guard let subLayers = videoPreviewLayer?.sublayers else {
-            return
-        }
-        for subLayer in subLayers {
-            if subLayer is CAShapeLayer {
-                subLayer.removeFromSuperlayer()
-            }
+
 
         }
         
+        alertController.addAction(alertAction)
+        present(alertController, animated: true, completion: nil)
+
     }
-    
     
     
 }
